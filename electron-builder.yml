@@ -1,0 +1,22 @@
+appId: com.notion-whisper.app
+productName: Notion Whisper
+directories:
+  buildResources: resources
+  output: out
+files:
+  - dist/**/*
+  - dist-electron/**/*
+mac:
+  category: public.app-category.productivity
+  target:
+    - dmg
+    - zip
+  icon: resources/icon.icns
+win:
+  target:
+    - nsis
+  icon: resources/icon.ico
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false

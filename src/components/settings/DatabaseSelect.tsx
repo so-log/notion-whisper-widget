@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react'
 import type { NotionDatabase } from '../../types/notion'
 
 interface DatabaseSelectProps {
-  token: string
   onSelected: (todoDbId: string, todoDbName: string, habitDbId: string, habitDbName: string) => void
   onBack: () => void
 }
 
-export function DatabaseSelect({ token, onSelected, onBack }: DatabaseSelectProps) {
+export function DatabaseSelect({ onSelected, onBack }: DatabaseSelectProps) {
   const [databases, setDatabases] = useState<NotionDatabase[]>([])
   const [todoDbId, setTodoDbId] = useState('')
   const [habitDbId, setHabitDbId] = useState('')
@@ -16,13 +15,13 @@ export function DatabaseSelect({ token, onSelected, onBack }: DatabaseSelectProp
 
   useEffect(() => {
     loadDatabases()
-  }, [token])
+  }, [])
 
   async function loadDatabases() {
     try {
       setLoading(true)
       if (window.electronAPI) {
-        const dbs = await window.electronAPI.searchDatabases(token)
+        const dbs = await window.electronAPI.searchDatabases()
         setDatabases(dbs)
       }
     } catch (err: any) {

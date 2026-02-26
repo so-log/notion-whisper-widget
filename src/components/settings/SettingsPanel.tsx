@@ -8,7 +8,8 @@ import type { WidgetPosition } from '../../types/widget'
 type Step = 'connect' | 'selectDb' | 'mapProps' | 'settings'
 
 interface SettingsState {
-  token: string
+  connected: boolean
+  workspaceName: string
   todoDatabaseId: string
   todoDatabaseName: string
   habitDatabaseId: string
@@ -19,39 +20,58 @@ interface SettingsState {
   pollingInterval: number
 }
 
+const initialState: SettingsState = {
+  connected: false,
+  workspaceName: '',
+  todoDatabaseId: '',
+  todoDatabaseName: '',
+  habitDatabaseId: '',
+  habitDatabaseName: '',
+  todoPropertyMapping: { title: '', status: '' },
+  habitPropertyMapping: { title: '', status: '' },
+  position: 'topLeft',
+  pollingInterval: 60000,
+}
+
 export function SettingsPanel() {
   const [step, setStep] = useState<Step>('connect')
-  const [state, setState] = useState<SettingsState>({
-    token: '',
-    todoDatabaseId: '',
-    todoDatabaseName: '',
-    habitDatabaseId: '',
-    habitDatabaseName: '',
-    todoPropertyMapping: { title: '', status: '' },
-    habitPropertyMapping: { title: '', status: '' },
-    position: 'bottomLeft',
-    pollingInterval: 60000,
-  })
+  const [state, setState] = useState<SettingsState>(initialState)
   const [isOnboarding, setIsOnboarding] = useState(true)
 
   useEffect(() => {
     loadExistingSettings()
+
+    if (window.electronAPI) {
+      const unsub = window.electronAPI.onAuthStatusChanged((status) => {
+        setState((prev) => ({
+          ...prev,
+          connected: status.connected,
+          workspaceName: status.workspace_name || '',
+        }))
+        if (!status.connected) {
+          setStep('connect')
+          setIsOnboarding(true)
+        }
+      })
+      return unsub
+    }
   }, [])
 
   async function loadExistingSettings() {
     if (!window.electronAPI) return
-    const token = await window.electronAPI.getToken()
+    const authStatus = await window.electronAPI.getAuthStatus()
     const settings = (await window.electronAPI.getSettings()) as any
 
-    if (token) {
+    if (authStatus.connected) {
       setState((prev) => ({
         ...prev,
-        token,
+        connected: true,
+        workspaceName: authStatus.workspace_name || '',
         todoDatabaseId: settings.todoDatabaseId || '',
         habitDatabaseId: settings.habitDatabaseId || '',
         todoPropertyMapping: settings.todoPropertyMapping || { title: '', status: '' },
         habitPropertyMapping: settings.habitPropertyMapping || { title: '', status: '' },
-        position: settings.position || 'bottomLeft',
+        position: settings.position || 'topLeft',
         pollingInterval: settings.pollingInterval || 60000,
       }))
       setIsOnboarding(false)
@@ -59,8 +79,8 @@ export function SettingsPanel() {
     }
   }
 
-  function handleTokenConnected(token: string) {
-    setState((prev) => ({ ...prev, token }))
+  function handleOAuthConnected() {
+    setState((prev) => ({ ...prev, connected: true }))
     setStep('selectDb')
   }
 
@@ -110,7 +130,7 @@ export function SettingsPanel() {
 
   async function handleDisconnect() {
     if (window.electronAPI) {
-      await window.electronAPI.clearToken()
+      await window.electronAPI.disconnect()
       await window.electronAPI.setSettings({
         todoDatabaseId: '',
         habitDatabaseId: '',
@@ -118,17 +138,7 @@ export function SettingsPanel() {
         habitPropertyMapping: null,
       })
     }
-    setState({
-      token: '',
-      todoDatabaseId: '',
-      todoDatabaseName: '',
-      habitDatabaseId: '',
-      habitDatabaseName: '',
-      todoPropertyMapping: { title: '', status: '' },
-      habitPropertyMapping: { title: '', status: '' },
-      position: 'bottomLeft',
-      pollingInterval: 60000,
-    })
+    setState(initialState)
     setIsOnboarding(true)
     setStep('connect')
   }
@@ -140,12 +150,11 @@ export function SettingsPanel() {
       </h1>
 
       {step === 'connect' && (
-        <NotionConnect onConnected={handleTokenConnected} />
+        <NotionConnect onConnected={handleOAuthConnected} />
       )}
 
       {step === 'selectDb' && (
         <DatabaseSelect
-          token={state.token}
           onSelected={handleDatabasesSelected}
           onBack={() => setStep('connect')}
         />
@@ -153,7 +162,6 @@ export function SettingsPanel() {
 
       {step === 'mapProps' && (
         <PropertyMapping
-          token={state.token}
           todoDatabaseId={state.todoDatabaseId}
           habitDatabaseId={state.habitDatabaseId}
           onComplete={handleMappingComplete}
@@ -165,7 +173,9 @@ export function SettingsPanel() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={cardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#2ecc71', fontWeight: 500 }}>연결됨 ✅</span>
+              <span style={{ color: '#2ecc71', fontWeight: 500 }}>
+                {state.workspaceName ? `${state.workspaceName} 연결됨 ✅` : '연결됨 ✅'}
+              </span>
               <button onClick={() => setStep('selectDb')} style={linkBtnStyle}>
                 DB 변경
               </button>

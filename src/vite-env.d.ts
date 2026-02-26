@@ -1,15 +1,27 @@
 /// <reference types="vite/client" />
 
-interface ElectronAPI {
-  // Notion 데이터
-  fetchNotionItems: () => Promise<import('./types/widget').WidgetItem[]>
-  searchDatabases: (token: string) => Promise<import('./types/notion').NotionDatabase[]>
-  getDatabaseProperties: (token: string, dbId: string) => Promise<Record<string, { id: string; name: string; type: string }>>
+interface AuthStatus {
+  connected: boolean
+  workspace_name?: string
+  workspace_icon?: string | null
+}
 
-  // 인증
-  saveToken: (token: string) => Promise<void>
-  getToken: () => Promise<string | undefined>
-  clearToken: () => Promise<void>
+interface OAuthResult {
+  success: boolean
+  workspace_name?: string
+  error?: string
+}
+
+interface ElectronAPI {
+  // Notion 데이터 (토큰 내부 관리)
+  fetchNotionItems: () => Promise<import('./types/widget').WidgetItem[]>
+  searchDatabases: () => Promise<import('./types/notion').NotionDatabase[]>
+  getDatabaseProperties: (dbId: string) => Promise<Record<string, { id: string; name: string; type: string }>>
+
+  // 인증 (OAuth)
+  startOAuth: () => Promise<OAuthResult>
+  getAuthStatus: () => Promise<AuthStatus>
+  disconnect: () => Promise<void>
 
   // 설정
   getSettings: () => Promise<Record<string, unknown>>
@@ -19,6 +31,7 @@ interface ElectronAPI {
   onItemsUpdated: (callback: (items: import('./types/widget').WidgetItem[]) => void) => () => void
   onRefresh: (callback: () => void) => () => void
   onSettingsUpdated: (callback: (settings: unknown) => void) => () => void
+  onAuthStatusChanged: (callback: (status: AuthStatus) => void) => () => void
 }
 
 interface Window {

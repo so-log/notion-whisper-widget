@@ -22,7 +22,7 @@ export interface WidgetSettings {
 }
 
 export const DEFAULT_SETTINGS: WidgetSettings = {
-  position: 'bottomLeft',
+  position: 'topLeft',
   pollingInterval: 60000,
   showWidget: true,
   launchAtStartup: false,

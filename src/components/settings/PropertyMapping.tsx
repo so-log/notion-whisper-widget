@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 
 interface PropertyMappingProps {
-  token: string
   todoDatabaseId: string
   habitDatabaseId: string
   onComplete: (
@@ -18,7 +17,6 @@ interface PropertyInfo {
 }
 
 export function PropertyMapping({
-  token,
   todoDatabaseId,
   habitDatabaseId,
   onComplete,
@@ -39,12 +37,12 @@ export function PropertyMapping({
       setLoading(true)
       if (!window.electronAPI) return
 
-      const todoPropData = await window.electronAPI.getDatabaseProperties(token, todoDatabaseId)
+      const todoPropData = await window.electronAPI.getDatabaseProperties(todoDatabaseId)
       setTodoProps(todoPropData)
       autoMapProperties(todoPropData, 'todo')
 
       if (habitDatabaseId) {
-        const habitPropData = await window.electronAPI.getDatabaseProperties(token, habitDatabaseId)
+        const habitPropData = await window.electronAPI.getDatabaseProperties(habitDatabaseId)
         setHabitProps(habitPropData)
         autoMapProperties(habitPropData, 'habit')
       }

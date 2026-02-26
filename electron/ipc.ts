@@ -1,48 +1,69 @@
-import { app, ipcMain, safeStorage, BrowserWindow } from 'electron'
+import { app, ipcMain, BrowserWindow } from 'electron'
 import { searchDatabases, getDatabaseProperties, fetchTodos, fetchHabits } from './notionApiMain'
-import { getStore } from './store'
+import { getStore, saveOAuthTokens, getOAuthTokens, clearOAuthTokens } from './store'
+import { startOAuthFlow } from './oauth'
 
 export function setupIpcHandlers() {
   const store = getStore()
 
-  // 토큰 저장 (Electron safeStorage로 암호화)
-  ipcMain.handle('auth:save-token', async (_event, token: string) => {
-    if (safeStorage.isEncryptionAvailable()) {
-      const encrypted = safeStorage.encryptString(token)
-      store.set('notionTokenEncrypted', encrypted.toString('base64'))
-    } else {
-      store.set('notionToken', token)
+  // --- 인증 (OAuth) ---
+
+  ipcMain.handle('auth:start-oauth', async () => {
+    try {
+      const tokens = await startOAuthFlow()
+      saveOAuthTokens({
+        access_token: tokens.access_token,
+        workspace_id: tokens.workspace_id,
+        workspace_name: tokens.workspace_name,
+        workspace_icon: tokens.workspace_icon,
+        bot_id: tokens.bot_id,
+      })
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('auth:status-changed', {
+          connected: true,
+          workspace_name: tokens.workspace_name,
+          workspace_icon: tokens.workspace_icon,
+        })
+      })
+      return { success: true, workspace_name: tokens.workspace_name }
+    } catch (err: any) {
+      return { success: false, error: err.message }
     }
   })
 
-  // 토큰 읽기
-  ipcMain.handle('auth:get-token', async () => {
-    const encrypted = store.get('notionTokenEncrypted') as string | undefined
-    if (encrypted && safeStorage.isEncryptionAvailable()) {
-      return safeStorage.decryptString(Buffer.from(encrypted, 'base64'))
+  ipcMain.handle('auth:get-status', async () => {
+    const tokens = getOAuthTokens()
+    if (!tokens) return { connected: false }
+    return {
+      connected: true,
+      workspace_name: tokens.workspace_name,
+      workspace_icon: tokens.workspace_icon,
     }
-    return store.get('notionToken') as string | undefined
   })
 
-  // 토큰 삭제
-  ipcMain.handle('auth:clear-token', async () => {
-    store.delete('notionTokenEncrypted')
-    store.delete('notionToken')
+  ipcMain.handle('auth:disconnect', async () => {
+    clearOAuthTokens()
+    BrowserWindow.getAllWindows().forEach((win) => {
+      win.webContents.send('auth:status-changed', { connected: false })
+    })
   })
 
-  // DB 목록 조회
-  ipcMain.handle('notion:search-databases', async (_event, token: string) => {
+  // --- Notion 데이터 (토큰 내부 조회) ---
+
+  ipcMain.handle('notion:search-databases', async () => {
+    const token = getAccessToken()
+    if (!token) throw new Error('Not connected to Notion')
     return searchDatabases(token)
   })
 
-  // DB 프로퍼티 조회
-  ipcMain.handle('notion:get-properties', async (_event, token: string, databaseId: string) => {
+  ipcMain.handle('notion:get-properties', async (_event, databaseId: string) => {
+    const token = getAccessToken()
+    if (!token) throw new Error('Not connected to Notion')
     return getDatabaseProperties(token, databaseId)
   })
 
-  // 할일 + 습관 통합 조회
   ipcMain.handle('notion:fetch-items', async () => {
-    const token = await getToken()
+    const token = getAccessToken()
     if (!token) throw new Error('No Notion token configured')
 
     const settings = store.get('settings') as any || {}
@@ -61,7 +82,8 @@ export function setupIpcHandlers() {
     return items
   })
 
-  // 설정 읽기/쓰기
+  // --- 설정 ---
+
   ipcMain.handle('settings:get', () => {
     return store.get('settings') || {}
   })
@@ -71,25 +93,19 @@ export function setupIpcHandlers() {
     const merged = { ...current, ...settings }
     store.set('settings', merged)
 
-    // 자동 실행 설정
     if ('launchAtStartup' in settings) {
       app.setLoginItemSettings({
         openAtLogin: !!settings.launchAtStartup,
       })
     }
 
-    // 위젯 윈도우에 설정 변경 알림
     BrowserWindow.getAllWindows().forEach((win) => {
       win.webContents.send('settings:updated', merged)
     })
   })
 }
 
-async function getToken(): Promise<string | undefined> {
-  const store = getStore()
-  const encrypted = store.get('notionTokenEncrypted') as string | undefined
-  if (encrypted && safeStorage.isEncryptionAvailable()) {
-    return safeStorage.decryptString(Buffer.from(encrypted, 'base64'))
-  }
-  return store.get('notionToken') as string | undefined
+function getAccessToken(): string | null {
+  const tokens = getOAuthTokens()
+  return tokens?.access_token || null
 }

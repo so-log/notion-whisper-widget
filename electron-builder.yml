@@ -6,16 +6,23 @@ directories:
 files:
   - dist/**/*
   - dist-electron/**/*
+publish:
+  provider: github
 mac:
   category: public.app-category.productivity
   target:
     - dmg
     - zip
-  icon: resources/icon.icns
+  icon: resources/icon.png
 win:
   target:
     - nsis
   icon: resources/icon.ico
+linux:
+  target:
+    - AppImage
+  icon: resources/icon.png
+  category: Utility
 nsis:
   oneClick: true
   perMachine: false

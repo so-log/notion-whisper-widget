@@ -8,6 +8,7 @@ on:
 jobs:
   release:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -39,4 +40,5 @@ jobs:
       - name: Build Electron app
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npx electron-builder --${{ matrix.platform }} --publish always

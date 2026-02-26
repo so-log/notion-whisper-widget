@@ -35,10 +35,14 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build
-        run: yarn build
+        run: yarn vite build
+
+      - name: Verify build output
+        run: ls dist-electron/
+        shell: bash
 
       - name: Build Electron app
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npx electron-builder --${{ matrix.platform }} --publish always
+        run: yarn electron-builder --${{ matrix.platform }} --publish always

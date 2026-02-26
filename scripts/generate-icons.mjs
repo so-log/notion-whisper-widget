@@ -5,7 +5,8 @@
 import { writeFileSync } from 'fs'
 import { deflateSync } from 'zlib'
 
-const SIZE = 256
+const SIZE = 512
+const S = SIZE / 256 // scale factor
 
 // RGBA 버퍼 생성
 const pixels = Buffer.alloc(SIZE * SIZE * 4, 0)
@@ -71,23 +72,23 @@ function fillRoundRect(x1, y1, x2, y2, radius, r, g, b, a = 255) {
 // === 아이콘 그리기 ===
 
 // 배경: 둥근 사각형 (진한 회색)
-fillRoundRect(8, 8, 247, 247, 48, 51, 51, 51)
+fillRoundRect(8*S, 8*S, 247*S, 247*S, 48*S, 51, 51, 51)
 
 // 말풍선 본체 (흰색 둥근 사각형)
-fillRoundRect(32, 48, 224, 168, 28, 255, 255, 255)
+fillRoundRect(32*S, 48*S, 224*S, 168*S, 28*S, 255, 255, 255)
 
 // 말풍선 꼬리 (왼쪽 하단 삼각형)
-for (let row = 0; row < 32; row++) {
-  const width = 32 - row
+for (let row = 0; row < 32*S; row++) {
+  const width = 32*S - row
   for (let col = 0; col < width; col++) {
-    setPixel(48 + col, 168 + row, 255, 255, 255)
+    setPixel(48*S + col, 168*S + row, 255, 255, 255)
   }
 }
 
 // 점 3개 (타이핑 인디케이터 - 회색)
-fillCircle(90, 108, 14, 120, 120, 120)
-fillCircle(128, 108, 14, 150, 150, 150)
-fillCircle(166, 108, 14, 180, 180, 180)
+fillCircle(90*S, 108*S, 14*S, 120, 120, 120)
+fillCircle(128*S, 108*S, 14*S, 150, 150, 150)
+fillCircle(166*S, 108*S, 14*S, 180, 180, 180)
 
 // === PNG 생성 ===
 function createPNG(width, height, rgbaBuffer) {

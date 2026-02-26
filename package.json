@@ -2,6 +2,8 @@
   "name": "notion-whisper",
   "version": "0.1.0",
   "description": "노션이 보내는 읽지 않은 메시지 — 데스크톱에 조용히 떠있어요",
+  "author": "so-log",
+  "license": "MIT",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "node scripts/dev.mjs",

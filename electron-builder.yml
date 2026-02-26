@@ -4,8 +4,9 @@ directories:
   buildResources: resources
   output: out
 files:
-  - dist/**/*
-  - dist-electron/**/*
+  - "dist"
+  - "dist-electron"
+  - "package.json"
 publish:
   provider: github
 mac:

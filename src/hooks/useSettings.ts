@@ -16,6 +16,11 @@ export function useSettings() {
       setSettingsState({ ...DEFAULT_SETTINGS, ...saved })
       setLoaded(true)
     })
+
+    const unsub = window.electronAPI.onSettingsUpdated?.((updated: any) => {
+      setSettingsState((prev) => ({ ...prev, ...updated }))
+    })
+    return unsub
   }, [])
 
   const updateSettings = useCallback(async (patch: Partial<WidgetSettings>) => {

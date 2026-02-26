@@ -3,7 +3,7 @@ import http from 'node:http'
 import crypto from 'node:crypto'
 
 const NOTION_CLIENT_ID = '313d872b-594c-8104-bb76-0037ec478973'
-const OAUTH_PROXY_URL = 'https://notion-whisper-proxy.vercel.app' // Vercel 배포 후 실제 URL로 변경
+const OAUTH_PROXY_URL = 'https://notion-whisper-widget.vercel.app'
 const OAUTH_PORTS = [19872, 19873, 19874]
 const OAUTH_AUTHORIZE_URL = 'https://api.notion.com/v1/oauth/authorize'
 
